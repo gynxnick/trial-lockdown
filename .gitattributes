@@ -1,0 +1,5 @@
+# Force LF line endings for shell scripts and PHP — these get
+# served verbatim from raw.githubusercontent.com and piped to bash
+# / executed by PHP, both of which choke on CRLF.
+*.sh   text eol=lf
+*.php  text eol=lf
