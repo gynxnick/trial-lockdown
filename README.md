@@ -35,11 +35,12 @@ modified.
 
 | Endpoint | Why |
 |---|---|
-| `POST   /api/client/account/email` | Email change locks others out of the shared account. |
-| `PUT    /api/client/account/password` | Same — password change. |
+| `PUT/POST/PATCH /api/client/account/email` | Email change locks others out of the shared account. |
+| `PUT/POST/PATCH /api/client/account/password` | Same — password change. |
 | `POST   /api/client/account/api-keys` | Trial users shouldn't be able to extract long-lived API access. |
-| `POST/PUT/DELETE /api/client/account/two-factor` | Enabling 2FA locks the shared creds. |
-| `POST/DELETE /api/client/account/sshkeys/*` | SSH keys persist across panel resets. |
+| `POST   /api/client/account/two-factor` | Enabling 2FA locks the shared creds. |
+| `POST   /api/client/account/two-factor/disable` | Disabling 2FA mid-session would leave the next user without protection. |
+| `POST   /api/client/account/ssh-keys`, `.../remove` | SSH keys persist across panel resets. |
 | `*      /api/application/*` | Admin API — fully off-limits, defence-in-depth. |
 | `DELETE /api/client/servers/*` | Server deletion. |
 | `POST   /api/client/servers/*/settings/reinstall` | Reinstall is destructive. |
