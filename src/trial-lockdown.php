@@ -35,37 +35,16 @@ return [
     'blocked' => [
 
         // ── Account mutation (locks shared trial creds) ──────────────────
-        // Email — vanilla Pterodactyl uses PUT; some forks POST/PATCH.
-        'PUT    api/client/account/email',
-        'POST   api/client/account/email',
-        'PATCH  api/client/account/email',
-
-        // Password — same pattern as email.
-        'PUT    api/client/account/password',
-        'POST   api/client/account/password',
-        'PATCH  api/client/account/password',
-
-        // API keys
-        'POST   api/client/account/api-keys',
-        'DELETE api/client/account/api-keys/*',
-
-        // 2FA — vanilla Pterodactyl uses two-factor (hyphen), POST.
-        // The /disable sub-route is a separate POST. Block both. Also
-        // include two_factor (underscore) — older Pterodactyl + some
-        // derivatives — and PUT/DELETE on the base path defensively.
-        'POST   api/client/account/two-factor',
-        'POST   api/client/account/two-factor/disable',
-        'PUT    api/client/account/two-factor',
-        'DELETE api/client/account/two-factor',
-        'POST   api/client/account/two_factor',
-        'POST   api/client/account/two_factor/disable',
-        'PUT    api/client/account/two_factor',
-        'DELETE api/client/account/two_factor',
-
-        // SSH keys (path varies by version)
-        'POST   api/client/account/ssh-keys',
-        'POST   api/client/account/ssh-keys/remove',
-        'POST   api/client/account/sshkeys',
+        // Defensive wildcard: every non-GET under /api/client/account/*
+        // is blocked. Catches email, password, 2FA (any path variant),
+        // api-keys, ssh-keys, and any new account-mutation route a
+        // future Pterodactyl/Pelican/forked version adds — without
+        // having to chase HTTP-verb and slug differences. GETs (read
+        // profile, list api keys, etc.) pass through.
+        'PUT    api/client/account/*',
+        'POST   api/client/account/*',
+        'PATCH  api/client/account/*',
+        'DELETE api/client/account/*',
 
         // ── Admin API — block entirely (in case trial user is escalated)
         '*      api/application/*',
