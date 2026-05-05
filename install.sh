@@ -79,31 +79,14 @@ if grep -q "trial-lockdown:start" "$KERNEL"; then
     ok "Middleware already registered (idempotent skip)"
 else
     cp "$KERNEL" "$KERNEL.trial-lockdown.bak"
-    php <<'PHP_PATCH' "$KERNEL"
-<?php
-$path = $argv[1];
-$src = file_get_contents($path);
-
-$insert = "\n            // trial-lockdown:start"
-        . "\n            \\Pterodactyl\\Http\\Middleware\\TrialLockdown::class,"
-        . "\n            // trial-lockdown:end";
-
-// Insert as the first entry of the 'api' middleware group. Pattern
-// matches both `'api' => [` and `"api" => [` with any whitespace.
-$patched = preg_replace(
-    '/([\'"]api[\'"]\s*=>\s*\[)/',
-    '$1' . $insert,
-    $src,
-    1,
-    $count
-);
-if ($count !== 1 || $patched === null) {
-    fwrite(STDERR, "Could not locate 'api' middleware group in Kernel.php\n");
-    exit(1);
-}
-file_put_contents($path, $patched);
-PHP_PATCH
-    ok "Added middleware to api group (backup at $KERNEL.trial-lockdown.bak)"
+    PATCHER="$(mktemp)"
+    trap 'rm -f "$PATCHER"' EXIT
+    curl -fsSL "$RAW/tools/patch-kernel.php" -o "$PATCHER"
+    if php "$PATCHER" "$KERNEL"; then
+        ok "Added middleware to api group (backup at $KERNEL.trial-lockdown.bak)"
+    else
+        die "Kernel.php patching failed - restore from $KERNEL.trial-lockdown.bak if needed"
+    fi
 fi
 
 # 4) .env

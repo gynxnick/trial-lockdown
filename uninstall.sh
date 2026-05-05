@@ -14,6 +14,9 @@
 
 set -euo pipefail
 
+REPO="gynxnick/trial-lockdown"
+REF="${TRIAL_LOCKDOWN_REF:-main}"
+
 PANEL=""
 SKIP_RELOAD=0
 
@@ -22,9 +25,13 @@ while [[ $# -gt 0 ]]; do
         --panel=*)     PANEL="${1#*=}"; shift ;;
         --panel)       PANEL="$2"; shift 2 ;;
         --skip-reload) SKIP_RELOAD=1; shift ;;
+        --ref=*)       REF="${1#*=}"; shift ;;
+        --ref)         REF="$2"; shift 2 ;;
         *) echo "Unknown flag: $1" >&2; exit 64 ;;
     esac
 done
+
+RAW="https://raw.githubusercontent.com/${REPO}/${REF}"
 
 NC='\033[0m'; BOLD='\033[1m'
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; CYAN='\033[0;36m'
@@ -35,25 +42,22 @@ die() { printf "  ${RED}x${NC} %s\n" "$1" >&2; exit 1; }
 
 [[ -z "$PANEL" ]] && die "--panel <path> is required"
 [[ -d "$PANEL" ]] || die "Panel directory not found: $PANEL"
-command -v php >/dev/null || die "php is required but not on PATH"
+command -v curl >/dev/null || die "curl is required but not on PATH"
+command -v php  >/dev/null || die "php is required but not on PATH"
 
 # 1) Strip Kernel.php registration
 KERNEL="$PANEL/app/Http/Kernel.php"
 if [[ -f "$KERNEL" ]] && grep -q "trial-lockdown:start" "$KERNEL"; then
     say "Removing middleware registration from Kernel.php"
     cp "$KERNEL" "$KERNEL.uninstall.bak"
-    php <<'PHP_STRIP' "$KERNEL"
-<?php
-$path = $argv[1];
-$src = file_get_contents($path);
-$stripped = preg_replace(
-    '/\s*\/\/ trial-lockdown:start.*?\/\/ trial-lockdown:end/s',
-    '',
-    $src
-);
-file_put_contents($path, $stripped);
-PHP_STRIP
-    ok "Kernel.php cleaned (backup at $KERNEL.uninstall.bak)"
+    STRIPPER="$(mktemp)"
+    trap 'rm -f "$STRIPPER"' EXIT
+    curl -fsSL "$RAW/tools/strip-kernel.php" -o "$STRIPPER"
+    if php "$STRIPPER" "$KERNEL"; then
+        ok "Kernel.php cleaned (backup at $KERNEL.uninstall.bak)"
+    else
+        die "Kernel.php strip failed - restore from $KERNEL.uninstall.bak"
+    fi
 else
     warn "No trial-lockdown markers in Kernel.php - nothing to strip"
 fi
